@@ -1,26 +1,34 @@
 {
+  "manifest_version": 3,
   "name": "Quick Multiple Monitor",
   "version": "0.1.0",
   "description": "Make more easier to open page in specified monitor with drag and drop.",
   "icons": {
-    "48": "icon.png",
-    "128": "icon.png"
+    "48": "icon-48.png",
+    "128": "icon-128.png"
   },
+  "action": {
+    "default_title": "Quick Multiple Monitor",
+    "default_popup": "popup/index.html"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*/*"
+  ],
   "background": {
-    "persistent": false,
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["content-script.js"]
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content-script.js"
+      ]
     }
-  ],
-  "browser_action": {
-    "default_icon": "icon.png",
-    "default_title": "Multiple Windows",
-    "default_popup": "popup/index.html"
-  },
-  "manifest_version": 2,
-  "permissions": ["storage"]
+  ]
 }
