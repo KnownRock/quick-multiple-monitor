@@ -17,7 +17,7 @@
 
   div.style.zIndex = '99999999';
 
-  async function freshScreenDivs(div, {pageX,pageY}) {
+  async function freshScreenDivs(div, {dragX,dragY}) {
     div.innerHTML = '';
 
 
@@ -75,8 +75,8 @@
     }
 
     div.style.display = 'block';
-    div.style.left = pageX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX + 'px';
-    div.style.top = pageY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY + 'px';
+    div.style.left = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX + 'px';
+    div.style.top = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY + 'px';
     // debugger
 
 
@@ -167,7 +167,10 @@
   document.addEventListener('dragstart', async (e) => {
     if(e.dataTransfer.types.includes('text/html')) {
       setTimeout(async () => {
-        await freshScreenDivs(div,e);
+        await freshScreenDivs(div,{
+          dragX: e.clientX,
+          dragY: e.clientY
+        });
       }, 10);
     }
   })
