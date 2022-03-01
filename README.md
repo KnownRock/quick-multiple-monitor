@@ -10,6 +10,7 @@ or ![image](https://user-images.githubusercontent.com/58989910/156196727-e36bcb3
 
 Edit screens with a JSON array, which have the following props.
 And edit the size of the float box, which will be used to open URL in a specified monitor.
+
 ![image](https://user-images.githubusercontent.com/58989910/156196833-afdcab9c-b959-4f03-9e59-0e56f7d73e14.png)
 
 ### Use
