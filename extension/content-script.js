@@ -165,9 +165,11 @@
 
   // on drag
   document.addEventListener('dragstart', async (e) => {
-    setTimeout(async () => {
-      await freshScreenDivs(div,e);
-    }, 10);
+    if(e.dataTransfer.types.includes('text/html')) {
+      setTimeout(async () => {
+        await freshScreenDivs(div,e);
+      }, 10);
+    }
   })
 
   document.addEventListener('dragend', (e) => {

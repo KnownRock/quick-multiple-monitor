@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Quick Multiple Monitor",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Make more easier to open page in specified monitor with drag and drop.",
   "icons": {
     "48": "icon-48.png",
