@@ -1,20 +1,12 @@
 let xOffset = 0;
 let yOffset = 0;
 
-if(window.navigator.userAgentData.platform === "Windows"){
+if(navigator.userAgentData.platform === "Windows"){
   xOffset = 8
   yOffset = 8
 }
 
 async function main() {
-  // const allScreens = [
-  //   { x: 0, y: -1080, width: 1920, height: 1080 },
-  //   { x: 0, y: 0, width: 1920, height: 1080 },
-  //   { x: 0, y: 1080, width: 1920, height: 1080 },
-  //   { x: -1920, y: 0, width: 1920, height: 1080 },
-  //   { x: +1920, y: 0, width: 1920, height: 1080 },
-  // ]
-
   chrome.runtime.onMessage.addListener(
     function (request, sender, sendResponse) {
       if (request.func === 'get-all-screens') {
@@ -75,7 +67,7 @@ async function getAllScreens() {
 
 function getScreenIndex(allScreens, { x, y }) {
   return allScreens.reduce((acc, screen, index) => {
-    if (x >= screen.x && x <= screen.x + screen.width && y >= screen.y && y <= screen.y + screen.height) {
+    if (x >= screen.x && x < screen.x + screen.width && y >= screen.y && y < screen.y + screen.height) {
       acc = index;
     }
     return acc;
@@ -93,7 +85,7 @@ async function getMaximizedWindow({ x, y, width, height }) {
         const newTop = w.top + yOffset;
         const newLeft = w.left + xOffset;
 
-        return newTop >= y && newLeft >= x && newTop <= y + height && newLeft <= x + width;
+        return newTop >= y && newLeft >= x && newTop < y + height && newLeft < x + width;
       })
   if (maximizedWindows.length > 0) {
     return maximizedWindows[0];

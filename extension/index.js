@@ -3,7 +3,7 @@
   const btn = document.getElementById("btn");
   const resetButton = document.getElementById("reset")
 
-  const allScreens = chrome.storage.sync.get("allScreensJson", function(data){
+  chrome.storage.sync.get("allScreensJson", function(data){
     textarea.value = data.allScreensJson
   })
 

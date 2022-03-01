@@ -8,13 +8,12 @@
     { x: +1920, y: 0, width: 1920, height: 1080 },
   ]
 
-  // const width = 320, height = 180;
-
   const div = document.createElement('div');
   div.style.position = 'fixed';
   div.style.top = '0px';
   div.style.left = '0px';
   div.style.display = 'none'
+  div.style.pointerEvents = 'none';
 
   div.style.zIndex = '99999999';
 
@@ -63,7 +62,7 @@
     const scaleX = width / (maxX - minX);
     const scaleY = height / (maxY - minY);
 
-    const openerScreen = [allScreens[openerScreenIndex], allScreens[0]].reduce((acc, screen) => {
+    const openerScreen = [allScreens[0],allScreens[openerScreenIndex]].reduce((acc, screen) => {
       if (screen) {
         acc = {...screen};
       }
@@ -92,8 +91,7 @@
       sDiv.style.backgroundColor = `hsl(${index * 360 / allScreens.length}, 100%, 50%)`;
       // sDiv.style.border = '1px solid #000';
       sDiv.style.zIndex = '1';
-      // sDiv.style.pointerEvents = 'none';
-
+      sDiv.style.pointerEvents = 'auto';
       sDiv.style.display = 'flex';
       sDiv.style.alignItems = 'center';
       sDiv.style.justifyContent = 'center';
@@ -138,7 +136,12 @@
       closeDiv.style.display = 'flex';
       closeDiv.style.alignItems = 'center';
       closeDiv.style.justifyContent = 'center';
+      closeDiv.style.pointerEvents = 'auto';
       closeDiv.innerHTML = '<div>X</div>';
+
+      closeDiv.addEventListener('click', () => {
+        div.style.display = 'none';
+      });
 
       closeDiv.addEventListener('dragover', (e) => {
         div.style.display = 'none';
