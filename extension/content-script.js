@@ -1,17 +1,143 @@
 !(async () => {
   // https://developer.chrome.com/docs/extensions/mv3/content_scripts/
 
-  // initialize float box div
-  const div = document.createElement('div');
   const randomId = Math.floor(Math.random() * 1000000)
-  const divId = '__ext_qmm_div_' + randomId
-  div.id = divId;
-  document.body.appendChild(div);
-
+  // initialize float box div
+  const continerDiv = initContainer(`__ext_qmm_div_${randomId}`)
   // initialize float box style
-  const style = document.createElement('style');
-  style.id = '__ext_qmm_style_' + randomId
-  style.innerHTML = `
+  initStyle(`__ext_qmm_style_${randomId}`, `__ext_qmm_div_${randomId}`)
+
+  // when drag a url, show the div
+  document.addEventListener('dragstart', async (e) => {
+    if (isUrlDraged(e)) {
+      setTimeout(async () => {
+        await freshScreenDivs(continerDiv, {
+          dragX: e.clientX,
+          dragY: e.clientY,
+        })
+      }, 10)
+    }
+  })
+
+  // after drag a url, hide the div
+  document.addEventListener('dragend', (e) => {
+    hideContainer()
+  })
+
+  // initialize float box content
+  async function freshScreenDivs(div, { dragX, dragY }) {
+    clearContainer()
+
+    const { width, height } = await getUserSizeSetting()
+    sizeContainer(width, height)
+
+    const allScreens = await getAllScreens()
+
+    const {
+      minX, minY, scaleX, scaleY,
+    } = getAllScreensBound(allScreens, { height, width })
+
+    const openerScreen = await getOpenerScreen(allScreens)
+
+    if (!openerScreen) {
+      return
+    }
+
+    const { divLeft, divTop } = getContainerPosition({
+      dragX, openerScreen, minX, scaleX, dragY, minY, scaleY, width, height,
+    })
+
+    moveContainer(divLeft, divTop)
+
+    allScreens.forEach((screen, index) => {
+      div.appendChild(getScreenBoxDiv(screen, index, allScreens.length, {
+        minX, minY, scaleX, scaleY,
+      }))
+    })
+
+    div.appendChild(getCloseBoxDiv())
+
+    showContainer()
+  }
+
+  function getScreenBoxDiv(screen, index, length, {
+    minX, minY, scaleX, scaleY,
+  }) {
+    const sDiv = document.createElement('div')
+    sDiv.className = 'screen-div'
+    sDiv.style.position = 'absolute'
+    sDiv.style.top = `${(screen.y - minY) * scaleY}px`
+    sDiv.style.left = `${(screen.x - minX) * scaleX}px`
+    sDiv.style.width = `${screen.width * scaleX}px`
+    sDiv.style.height = `${screen.height * scaleY}px`
+    // by github copilot
+    sDiv.style.backgroundColor = `hsl(${(index * 360) / length}, 100%, 50%)`
+    sDiv.innerHTML = `
+        <div class="screen-index-label">${index}</div>
+      `
+
+    sDiv.addEventListener('dragover', (e) => {
+      if (e.dataTransfer.types.includes('text/uri-list')) {
+        // add hover effect when dragging over
+        sDiv.classList.add('screen-div-hover')
+
+        e.preventDefault()
+        e.stopPropagation()
+      }
+    })
+
+    sDiv.addEventListener('dragleave', (e) => {
+      // remove hover effect when dragging out
+      sDiv.classList.remove('screen-div-hover')
+
+      e.preventDefault()
+      e.stopPropagation()
+    })
+
+    sDiv.addEventListener('drop', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+
+      hideContainer()
+
+      if (e.dataTransfer.types.includes('text/uri-list')) {
+        const url = e.dataTransfer.getData('text/uri-list')
+        chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url })
+      }
+    })
+    return sDiv
+  }
+
+  function getCloseBoxDiv() {
+    const closeDiv = document.createElement('div')
+    closeDiv.className = 'close-div'
+    closeDiv.innerHTML = '<div>X</div>'
+
+    closeDiv.addEventListener('click', (e) => {
+      hideContainer()
+      e.preventDefault()
+      e.stopPropagation()
+    })
+
+    closeDiv.addEventListener('dragover', (e) => {
+      hideContainer()
+      e.preventDefault()
+      e.stopPropagation()
+    })
+    return closeDiv
+  }
+
+  function initContainer(id) {
+    const div = document.createElement('div')
+    div.id = id
+    document.body.appendChild(div)
+    return div
+  }
+
+  function initStyle(id, divId) {
+    const style = document.createElement('style')
+    style.id = id
+    style.innerHTML = `
     #${divId} {
       display: none;
       pointer-events: auto;
@@ -46,186 +172,137 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      opacity: 0.5;
 
       top: 0px;
       right: 0px;
       width: 20px;
       height: 20px;
       background-color: lightgray;
-      border-radius: 50%;
+      
     }
 
     #${divId} .close-div:hover {
       background-color: gray;
     }
   `
-  document.body.appendChild(style);
+    document.body.appendChild(style)
+  }
 
-  // initialize float box content
-  async function freshScreenDivs(div, { dragX, dragY }) {
-    div.innerHTML = '';
+  function clearContainer() {
+    continerDiv.innerHTML = ''
+  }
 
+  function moveContainer(x, y) {
+    continerDiv.style.left = `${x}px`
+    continerDiv.style.top = `${y}px`
+  }
+
+  function sizeContainer(width, height) {
+    continerDiv.style.width = `${width}px`
+    continerDiv.style.height = `${height}px`
+  }
+
+  function showContainer() {
+    continerDiv.style.display = 'block'
+  }
+
+  function hideContainer() {
+    continerDiv.style.display = 'none'
+  }
+
+  async function getUserSizeSetting() {
     // get the float box size
-    const { width, height } = await new Promise((resolve, reject) => {
-      chrome.storage.sync.get('size', function (data) {
+    return new Promise((resolve) => {
+      chrome.storage.sync.get('size', (data) => {
         if (!data || !data.size) {
           resolve({
             width: 320,
-            height: 180
-          });
+            height: 180,
+          })
         }
-        resolve((data.size));
+        resolve((data.size))
       })
     })
-    div.style.width = `${width}px`;
-    div.style.height = `${height}px`;
-
-    // get all screens info
-    const allScreens = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ func: 'get-all-screens', }, function (response) {
-        resolve(response.screens);
-      });
-    })
-
-    // resize screen divs size to fit float box
-    const { minX, maxX, minY, maxY } = allScreens.reduce((acc, screen) => {
-      acc.minX = Math.min(acc.minX, screen.x);
-      acc.maxX = Math.max(acc.maxX, screen.x + screen.width);
-      acc.minY = Math.min(acc.minY, screen.y);
-      acc.maxY = Math.max(acc.maxY, screen.y + screen.height);
-      return acc;
-    }, { minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity });
-
-
-    const scaleX = width / (maxX - minX);
-    const scaleY = height / (maxY - minY);
-
-
-    // get opener from which screen
-    const openerScreenIndex = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ func: 'get-screen-index' }, function (response) {
-        resolve(response.screenIndex)
-      })
-    })
-
-    const openerScreen = [allScreens[0], allScreens[openerScreenIndex]].reduce((acc, screen) => {
-      if (screen) {
-        acc = { ...screen };
-      }
-      return acc;
-    }, null);
-
-    if (!openerScreen) {
-      console.log('no opener screen');
-      return;
-    }
-
-    div.style.display = 'block';
-
-    let divLeft = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX;
-    let divTop = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY;
-
-    if (divLeft < 0) {
-      divLeft = 0;
-    }
-    if (divTop < 0) {
-      divTop = 0;
-    }
-    if (divLeft > document.body.clientWidth - width) {
-      divLeft = document.body.clientWidth - width;
-    }
-    if (divTop > document.body.clientHeight - height) {
-      divTop = document.body.clientHeight - height;
-    }
-
-    div.style.left = divLeft + 'px';
-    div.style.top = divTop + 'px';
-
-
-
-    allScreens.forEach((screen, index) => {
-      const sDiv = document.createElement('div');
-      sDiv.className = 'screen-div';
-      sDiv.style.position = 'absolute';
-      sDiv.style.top = `${(screen.y - minY) * scaleY}px`;
-      sDiv.style.left = `${(screen.x - minX) * scaleX}px`;
-      sDiv.style.width = `${screen.width * scaleX}px`;
-      sDiv.style.height = `${screen.height * scaleY}px`;
-      // by github copilot
-      sDiv.style.backgroundColor = `hsl(${index * 360 / allScreens.length}, 100%, 50%)`;
-      sDiv.innerHTML = `
-        <div class="screen-index-label">${index}</div>
-      `
-
-
-      sDiv.addEventListener('dragover', (e) => {
-        if (e.dataTransfer.types.includes('text/uri-list')) {
-          // add hover effect when dragging over
-          sDiv.classList.add('screen-div-hover');
-
-          e.preventDefault();
-          e.stopPropagation();
-        }
-      });
-
-      sDiv.addEventListener('dragleave', (e) => {
-        // remove hover effect when dragging out
-        sDiv.classList.remove('screen-div-hover');
-
-        e.preventDefault();
-        e.stopPropagation();
-      });
-
-      sDiv.addEventListener('drop', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-
-        div.style.display = 'none';
-
-        if (e.dataTransfer.types.includes('text/uri-list')) {
-          const url = e.dataTransfer.getData('text/uri-list')
-          chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url });
-        }
-      });
-
-      div.appendChild(sDiv);
-
-      const closeDiv = document.createElement('div');
-      closeDiv.className = 'close-div';
-      closeDiv.innerHTML = '<div>X</div>';
-
-      closeDiv.addEventListener('click', () => {
-        div.style.display = 'none';
-        e.preventDefault();
-        e.stopPropagation();
-      });
-
-      closeDiv.addEventListener('dragover', (e) => {
-        div.style.display = 'none';
-        e.preventDefault();
-        e.stopPropagation();
-      });
-
-      div.appendChild(closeDiv);
-    });
   }
 
+  async function getAllScreens() {
+    // get all screens info
+    return new Promise((resolve) => {
+      chrome.runtime.sendMessage({ func: 'get-all-screens' }, (response) => {
+        resolve(response.screens)
+      })
+    })
+  }
 
-  // when drag a url, show the div
-  document.addEventListener('dragstart', async (e) => {
-    if (e.dataTransfer.types.includes('text/uri-list')) {
-      setTimeout(async () => {
-        await freshScreenDivs(div, {
-          dragX: e.clientX,
-          dragY: e.clientY
-        });
-      }, 10);
+  function getAllScreensBound(allScreens, { height, width }) {
+    // resize screen divs size to fit float box
+    const {
+      minX, maxX, minY, maxY,
+    } = allScreens.reduce((acc, screen) => {
+      acc.minX = Math.min(acc.minX, screen.x)
+      acc.maxX = Math.max(acc.maxX, screen.x + screen.width)
+      acc.minY = Math.min(acc.minY, screen.y)
+      acc.maxY = Math.max(acc.maxY, screen.y + screen.height)
+      return acc
+    }, {
+      minX: Infinity, maxX: -Infinity, minY: Infinity, maxY: -Infinity,
+    })
+
+    const scaleX = width / (maxX - minX)
+    const scaleY = height / (maxY - minY)
+
+    return {
+      minX,
+      // maxX,
+      minY,
+      // maxY,
+      scaleX,
+      scaleY,
     }
-  })
+  }
 
-  // after drag a url, hide the div
-  document.addEventListener('dragend', (e) => {
-    div.style.display = 'none';
-  })
+  async function getOpenerScreen(allScreens) {
+    async function getOpenerScreenIndex() {
+      return new Promise((resolve) => {
+        chrome.runtime.sendMessage({ func: 'get-screen-index' }, (response) => {
+          resolve(response.screenIndex)
+        })
+      })
+    }
 
+    const openerScreenIndex = await getOpenerScreenIndex()
+
+    return [allScreens[0], allScreens[openerScreenIndex]].reduce((acc, screen) => {
+      if (screen) {
+        return { ...screen }
+      }
+      return acc
+    }, null)
+  }
+
+  function getContainerPosition({
+    dragX, openerScreen, minX, scaleX, dragY, minY, scaleY, width, height,
+  }) {
+    let divLeft = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX
+    let divTop = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY
+
+    if (divLeft < 0) {
+      divLeft = 0
+    }
+    if (divTop < 0) {
+      divTop = 0
+    }
+    if (divLeft > (document.body.clientWidth || window.screen.availWidth) - width) {
+      divLeft = (document.body.clientWidth || window.screen.availWidth) - width
+    }
+    if (divTop > (document.body.clientHeight || window.screen.availHeight) - height) {
+      divTop = (document.body.clientHeight || window.screen.availHeight) - height
+    }
+    return { divLeft, divTop }
+  }
+
+  function isUrlDraged(e) {
+    return e.dataTransfer.types.includes('text/uri-list')
+  }
 })()
