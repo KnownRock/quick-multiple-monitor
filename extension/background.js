@@ -6,6 +6,7 @@ if(navigator.userAgentData.platform === "Windows"){
   yOffset = 8
 }
 
+
 async function main() {
   chrome.runtime.onMessage.addListener(
     function (request, sender, sendResponse) {
@@ -54,14 +55,22 @@ async function main() {
 
 
 async function getAllScreens() {
-  return new Promise((resolve, reject) =>{
-    chrome.storage.sync.get('allScreensJson', function(data) {
-      if(!data || !data.allScreensJson){
-        resolve([]);
-      }
-      resolve(JSON.parse(data.allScreensJson));
-    })
-  })
+  return getSystemDisplayInfo().then(function (systemDisplayInfo) {
+    return systemDisplayInfo.map(function (displayInfo) {
+      return {
+        x: displayInfo.bounds.left,
+        y: displayInfo.bounds.top,
+        width: displayInfo.bounds.width,
+        height: displayInfo.bounds.height
+      };
+    });
+  });
+}
+
+async function getSystemDisplayInfo(){
+  return new Promise(function (resolve, reject) {
+    chrome.system.display.getInfo(resolve);
+  });
 }
 
 
@@ -98,7 +107,7 @@ async function createWindow({ x, y, url }) {
   return new Promise(function (resolve, reject) {
     chrome.windows.create(
       {
-        focused: true,
+        focused: false,
         left: x - xOffset,
         top: y - yOffset,
         url
@@ -132,7 +141,7 @@ async function getAllWindows() {
 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
 async function createTab(windowId, url) {
   return new Promise(function (resolve, reject) {
-    chrome.tabs.create({ "windowId": windowId, "url": url }, resolve);
+    chrome.tabs.create({ "windowId": windowId, "url": url, "active":false }, resolve);
   });
 }
 
