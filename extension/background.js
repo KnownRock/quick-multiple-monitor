@@ -142,7 +142,7 @@ async function getAllWindows() {
 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
 async function createTab(windowId, url) {
   return new Promise(function (resolve, reject) {
-    chrome.tabs.create({ "windowId": windowId, "url": url, "active":false }, resolve);
+    chrome.tabs.create({ "windowId": windowId, "url": url, "active":true }, resolve);
   });
 }
 
