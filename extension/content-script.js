@@ -122,8 +122,26 @@
 
     div.style.display = 'block';
 
-    div.style.left = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX + 'px';
-    div.style.top = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY + 'px';
+    let divLeft = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX;
+    let divTop = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY;
+
+    if (divLeft < 0) {
+      divLeft = 0;
+    }
+    if (divTop < 0) {
+      divTop = 0;
+    }
+    if (divLeft > document.body.clientWidth - width) {
+      divLeft = document.body.clientWidth - width;
+    }
+    if (divTop > document.body.clientHeight - height) {
+      divTop = document.body.clientHeight - height;
+    }
+
+    div.style.left = divLeft + 'px';
+    div.style.top = divTop + 'px';
+
+
 
     allScreens.forEach((screen, index) => {
       const sDiv = document.createElement('div');
