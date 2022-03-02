@@ -97,7 +97,8 @@ async function getMaximizedWindow({ x, y, width, height }) {
         return newTop >= y && newLeft >= x && newTop < y + height && newLeft < x + width;
       })
   if (maximizedWindows.length > 0) {
-    return maximizedWindows[0];
+    const activeWindow = maximizedWindows.find(w => w.focused);
+    return activeWindow || maximizedWindows[0];
   } else {
     return null;
   }
