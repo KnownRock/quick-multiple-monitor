@@ -1,26 +1,67 @@
 !(async () => {
   // https://developer.chrome.com/docs/extensions/mv3/content_scripts/
-  const exampleScreens = [
-    { x: 0, y: -1080, width: 1920, height: 1080 },
-    { x: 0, y: 0, width: 1920, height: 1080 },
-    { x: 0, y: 1080, width: 1920, height: 1080 },
-    { x: -1920, y: 0, width: 1920, height: 1080 },
-    { x: +1920, y: 0, width: 1920, height: 1080 },
-  ]
-
   const div = document.createElement('div');
-  div.style.position = 'fixed';
-  div.style.top = '0px';
-  div.style.left = '0px';
-  div.style.display = 'none'
-  div.style.pointerEvents = 'none';
+  const randomId = Math.floor(Math.random() * 1000000) 
+  const divId = '__ext_qmm_div_' + randomId
+  div.id = divId;
+  document.body.appendChild(div);
 
-  div.style.zIndex = '99999999';
+  const style = document.createElement('style');
+  style.id = '__ext_qmm_style_' + randomId
+  style.innerHTML = `
+    #${divId} {
+      display: none;
+      pointer-events: auto;
+      z-index: 99999999;
+      top: 0;
+      left: 0;
+      position: fixed;
+    }
+    #${divId} .screen-div {
+      position: absolute;
+      z-index: 1;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      transition: all 0.3s ease-in-out;
+    }
+    #${divId} .screen-div .screen-index-label {
+      margin:0; 
+      font-size:20px;font-family: 'Courier New', monospace
+    }
+    #${divId} .screen-div-hover {
+      filter: brightness(0.7);
+    }
+
+
+    #${divId} .close-div {
+      position: absolute;
+      z-index: 2;
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      top: 0px;
+      right: 0px;
+      width: 20px;
+      height: 20px;
+      background-color: lightgray;
+      border-radius: 50%;
+    }
+
+    #${divId} .close-div:hover {
+      background-color: gray;
+    }
+  `
+  document.body.appendChild(style);
+
 
   async function freshScreenDivs(div, {dragX,dragY}) {
     div.innerHTML = '';
-
-
+    
     const {width,height} = await new Promise((resolve, reject) => {
       chrome.storage.sync.get('size', function(data) {
         if(!data || !data.size){
@@ -75,13 +116,13 @@
     }
 
     div.style.display = 'block';
+
     div.style.left = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX + 'px';
     div.style.top = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY + 'px';
-    // debugger
-
 
     allScreens.forEach((screen, index) => {
       const sDiv = document.createElement('div');
+      sDiv.className = 'screen-div';
       sDiv.style.position = 'absolute';
       sDiv.style.top = `${(screen.y - minY) * scaleY}px`;
       sDiv.style.left = `${(screen.x - minX) * scaleX}px`;
@@ -89,58 +130,51 @@
       sDiv.style.height = `${screen.height * scaleY}px`;
       // by github copilot
       sDiv.style.backgroundColor = `hsl(${index * 360 / allScreens.length}, 100%, 50%)`;
-      // sDiv.style.border = '1px solid #000';
-      sDiv.style.zIndex = '1';
-      sDiv.style.pointerEvents = 'auto';
-      sDiv.style.display = 'flex';
-      sDiv.style.alignItems = 'center';
-      sDiv.style.justifyContent = 'center';
       sDiv.innerHTML = `
-        <div><h1 style="margin:0">${index}</h1></div>
+        <div class="screen-index-label">${index}</div>
       `
 
 
-
       sDiv.addEventListener('dragover', (e) => {
-        if(e.dataTransfer.types.includes('text/html')) {
+        if(e.dataTransfer.types.includes('text/uri-list')) {
+          // add hover effect when dragging over
+          sDiv.classList.add('screen-div-hover');
+
           e.preventDefault();
           e.stopPropagation();
         }
+      });
+
+      sDiv.addEventListener('dragleave', (e) => {
+        // remove hover effect when dragging out
+        sDiv.classList.remove('screen-div-hover');
+
+        e.preventDefault();
+        e.stopPropagation();
       });
 
       sDiv.addEventListener('drop', (e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        console.log(e);
-
         div.style.display = 'none';
-        
-        const url = e.dataTransfer.getData('text/uri-list')
 
-        chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url });
-
-        // alert(index)
+        if (e.dataTransfer.types.includes('text/uri-list')) {
+          const url = e.dataTransfer.getData('text/uri-list')
+          chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url });
+        }
       });
+      
+      div.appendChild(sDiv);
 
       const closeDiv = document.createElement('div');
-      closeDiv.style.position = 'absolute';
-      closeDiv.style.top = '0px';
-      closeDiv.style.right = '0px';
-      closeDiv.style.width = '20px';
-      closeDiv.style.height = '20px';
-      closeDiv.style.zIndex = '2';
-      closeDiv.style.backgroundColor = 'lightgray';
-      closeDiv.style.borderRadius = '50%';
-
-      closeDiv.style.display = 'flex';
-      closeDiv.style.alignItems = 'center';
-      closeDiv.style.justifyContent = 'center';
-      closeDiv.style.pointerEvents = 'auto';
+      closeDiv.className = 'close-div';
       closeDiv.innerHTML = '<div>X</div>';
 
       closeDiv.addEventListener('click', () => {
         div.style.display = 'none';
+        e.preventDefault();
+        e.stopPropagation();
       });
 
       closeDiv.addEventListener('dragover', (e) => {
@@ -150,22 +184,13 @@
       });
 
       div.appendChild(closeDiv);
-
-      div.appendChild(sDiv);
-
-
     });
-
-
-
   }
 
-
-  document.body.appendChild(div);
-
-  // on drag
+  
+  // when drag a url, show the div
   document.addEventListener('dragstart', async (e) => {
-    if(e.dataTransfer.types.includes('text/html')) {
+    if(e.dataTransfer.types.includes('text/uri-list')) {
       setTimeout(async () => {
         await freshScreenDivs(div,{
           dragX: e.clientX,
@@ -175,7 +200,9 @@
     }
   })
 
+  // after drag a url, hide the div
   document.addEventListener('dragend', (e) => {
     div.style.display = 'none';
   })
+
 })()
