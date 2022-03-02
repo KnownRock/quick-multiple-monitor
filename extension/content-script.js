@@ -77,7 +77,7 @@
       `
 
     sDiv.addEventListener('dragover', (e) => {
-      if (e.dataTransfer.types.includes('text/uri-list')) {
+      if (isUrlDraged(e)) {
         // add hover effect when dragging over
         sDiv.classList.add('screen-div-hover')
 
@@ -100,7 +100,7 @@
 
       hideContainer()
 
-      if (e.dataTransfer.types.includes('text/uri-list')) {
+      if (isUrlDraged(e)) {
         const url = e.dataTransfer.getData('text/uri-list')
         chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url })
       }

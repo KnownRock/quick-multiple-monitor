@@ -6,6 +6,51 @@ if (navigator.userAgentData.platform === 'Windows') {
   yOffset = 8
 }
 
+async function main() {
+  chrome.runtime.onMessage.addListener(
+    (request, sender, sendResponse) => {
+      if (request.func === 'get-all-screens') {
+        !(async () => {
+          const allScreens = await getAllScreens()
+          sendResponse({ screens: allScreens })
+        })()
+      } else if (request.func === 'open-new-tab') {
+        const { screenIndex } = request
+        const { url } = request
+        !(async () => {
+          const allScreens = await getAllScreens()
+          let window = await getMaximizedWindow(allScreens[screenIndex])
+          if (window) {
+            await createTab(window.id, url)
+          } else {
+            window = await createMaximizedWindow({
+              ...allScreens[screenIndex],
+              url,
+            })
+          }
+        })()
+      } else if (request.func === 'get-screen-index') {
+        !(async () => {
+          const allScreens = await getAllScreens()
+          const windows = await getAllWindows()
+          const window = windows.find((w) => w.id === sender.tab.windowId)
+          if (window) {
+            const screenIndex = getScreenIndex(allScreens, {
+              x: window.left + xOffset,
+              y: window.top + yOffset,
+            })
+            sendResponse({ screenIndex })
+          } else {
+            sendResponse({ screenIndex: -1 })
+          }
+        })()
+      }
+
+      return true
+    },
+  )
+}
+
 async function getSystemDisplayInfo() {
   return new Promise((resolve) => {
     chrome.system.display.getInfo(resolve)
@@ -91,51 +136,6 @@ async function createTab(windowId, url) {
   return new Promise((resolve) => {
     chrome.tabs.create({ windowId, url, active: true }, resolve)
   })
-}
-
-async function main() {
-  chrome.runtime.onMessage.addListener(
-    (request, sender, sendResponse) => {
-      if (request.func === 'get-all-screens') {
-        !(async () => {
-          const allScreens = await getAllScreens()
-          sendResponse({ screens: allScreens })
-        })()
-      } else if (request.func === 'open-new-tab') {
-        const { screenIndex } = request
-        const { url } = request
-        !(async () => {
-          const allScreens = await getAllScreens()
-          let window = await getMaximizedWindow(allScreens[screenIndex])
-          if (window) {
-            await createTab(window.id, url)
-          } else {
-            window = await createMaximizedWindow({
-              ...allScreens[screenIndex],
-              url,
-            })
-          }
-        })()
-      } else if (request.func === 'get-screen-index') {
-        !(async () => {
-          const allScreens = await getAllScreens()
-          const windows = await getAllWindows()
-          const window = windows.find((w) => w.id === sender.tab.windowId)
-          if (window) {
-            const screenIndex = getScreenIndex(allScreens, {
-              x: window.left + xOffset,
-              y: window.top + yOffset,
-            })
-            sendResponse({ screenIndex })
-          } else {
-            sendResponse({ screenIndex: -1 })
-          }
-        })()
-      }
-
-      return true
-    },
-  )
 }
 
 main()

@@ -1,4 +1,4 @@
-!(function () {
+!(function main() {
   const widthSlider = document.getElementById('width')
   const heightSlider = document.getElementById('height')
 
