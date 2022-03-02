@@ -1,11 +1,14 @@
 !(async () => {
   // https://developer.chrome.com/docs/extensions/mv3/content_scripts/
+
+  // initialize float box div
   const div = document.createElement('div');
-  const randomId = Math.floor(Math.random() * 1000000) 
+  const randomId = Math.floor(Math.random() * 1000000)
   const divId = '__ext_qmm_div_' + randomId
   div.id = divId;
   document.body.appendChild(div);
 
+  // initialize float box style
   const style = document.createElement('style');
   style.id = '__ext_qmm_style_' + randomId
   style.innerHTML = `
@@ -58,39 +61,33 @@
   `
   document.body.appendChild(style);
 
-
-  async function freshScreenDivs(div, {dragX,dragY}) {
+  // initialize float box content
+  async function freshScreenDivs(div, { dragX, dragY }) {
     div.innerHTML = '';
-    
-    const {width,height} = await new Promise((resolve, reject) => {
-      chrome.storage.sync.get('size', function(data) {
-        if(!data || !data.size){
+
+    // get the float box size
+    const { width, height } = await new Promise((resolve, reject) => {
+      chrome.storage.sync.get('size', function (data) {
+        if (!data || !data.size) {
           resolve({
-            width:320,
-            height:180
+            width: 320,
+            height: 180
           });
         }
         resolve((data.size));
       })
     })
-
-    
-
     div.style.width = `${width}px`;
     div.style.height = `${height}px`;
 
+    // get all screens info
     const allScreens = await new Promise((resolve, reject) => {
       chrome.runtime.sendMessage({ func: 'get-all-screens', }, function (response) {
         resolve(response.screens);
       });
     })
-    
-    const openerScreenIndex = await new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage({ func: 'get-screen-index'}, function(response){
-        resolve(response.screenIndex)
-      })
-    })
 
+    // resize screen divs size to fit float box
     const { minX, maxX, minY, maxY } = allScreens.reduce((acc, screen) => {
       acc.minX = Math.min(acc.minX, screen.x);
       acc.maxX = Math.max(acc.maxX, screen.x + screen.width);
@@ -103,14 +100,22 @@
     const scaleX = width / (maxX - minX);
     const scaleY = height / (maxY - minY);
 
-    const openerScreen = [allScreens[0],allScreens[openerScreenIndex]].reduce((acc, screen) => {
+
+    // get opener from which screen
+    const openerScreenIndex = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({ func: 'get-screen-index' }, function (response) {
+        resolve(response.screenIndex)
+      })
+    })
+
+    const openerScreen = [allScreens[0], allScreens[openerScreenIndex]].reduce((acc, screen) => {
       if (screen) {
-        acc = {...screen};
+        acc = { ...screen };
       }
       return acc;
     }, null);
 
-    if(!openerScreen){
+    if (!openerScreen) {
       console.log('no opener screen');
       return;
     }
@@ -136,7 +141,7 @@
 
 
       sDiv.addEventListener('dragover', (e) => {
-        if(e.dataTransfer.types.includes('text/uri-list')) {
+        if (e.dataTransfer.types.includes('text/uri-list')) {
           // add hover effect when dragging over
           sDiv.classList.add('screen-div-hover');
 
@@ -164,7 +169,7 @@
           chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url });
         }
       });
-      
+
       div.appendChild(sDiv);
 
       const closeDiv = document.createElement('div');
@@ -187,12 +192,12 @@
     });
   }
 
-  
+
   // when drag a url, show the div
   document.addEventListener('dragstart', async (e) => {
-    if(e.dataTransfer.types.includes('text/uri-list')) {
+    if (e.dataTransfer.types.includes('text/uri-list')) {
       setTimeout(async () => {
-        await freshScreenDivs(div,{
+        await freshScreenDivs(div, {
           dragX: e.clientX,
           dragY: e.clientY
         });
