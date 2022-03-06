@@ -1,8 +1,5 @@
 {
   "manifest_version": 3,
-  "name": "Quick Multiple Monitor",
-  "version": "0.2.1",
-  "description": "Make more easier to open page in specified monitor with drag and drop.",
   "icons": {
     "48": "icon-48.png",
     "128": "icon-128.png"
@@ -19,7 +16,7 @@
     "*://*/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.ts"
   },
   "content_scripts": [
     {
@@ -28,7 +25,7 @@
         "https://*/*"
       ],
       "js": [
-        "content-script.js"
+        "content-script.ts"
       ]
     }
   ]

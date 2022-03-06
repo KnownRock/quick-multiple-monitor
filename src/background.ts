@@ -10,14 +10,14 @@ async function main() {
   chrome.runtime.onMessage.addListener(
     (request, sender, sendResponse) => {
       if (request.func === 'get-all-screens') {
-        !(async () => {
+        (async () => {
           const allScreens = await getAllScreens()
           sendResponse({ screens: allScreens })
         })()
       } else if (request.func === 'open-new-tab') {
         const { screenIndex } = request
-        const { url } = request
-        !(async () => {
+        const { url } = request;
+        (async () => {
           const allScreens = await getAllScreens()
           let window = await getMaximizedWindow(allScreens[screenIndex])
           if (window) {
@@ -30,11 +30,12 @@ async function main() {
           }
         })()
       } else if (request.func === 'get-screen-index') {
-        !(async () => {
+        (async () => {
           const allScreens = await getAllScreens()
           const windows = await getAllWindows()
-          const window = windows.find((w) => w.id === sender.tab.windowId)
-          if (window) {
+
+          const window = windows.find((w) => sender.tab && w.id === sender.tab.windowId)
+          if (window && window.left !== undefined && window.top !== undefined) {
             const screenIndex = getScreenIndex(allScreens, {
               x: window.left + xOffset,
               y: window.top + yOffset,
@@ -51,13 +52,13 @@ async function main() {
   )
 }
 
-async function getSystemDisplayInfo() {
+async function getSystemDisplayInfo(): Promise<chrome.system.display.DisplayInfo[]> {
   return new Promise((resolve) => {
     chrome.system.display.getInfo(resolve)
   })
 }
 
-async function getAllScreens() {
+async function getAllScreens(): Promise<SimpleScreen[]> {
   return getSystemDisplayInfo()
     .then((systemDisplayInfo) => systemDisplayInfo.map((displayInfo) => ({
       x: displayInfo.bounds.left,
@@ -67,7 +68,7 @@ async function getAllScreens() {
     })))
 }
 
-function getScreenIndex(allScreens, { x, y }) {
+function getScreenIndex(allScreens: SimpleScreen[], { x, y }: SimpleScreenCoord) {
   return allScreens.reduce((acc, screen, index) => {
     if (x >= screen.x && x < screen.x + screen.width
       && y >= screen.y && y < screen.y + screen.height) {
@@ -77,20 +78,21 @@ function getScreenIndex(allScreens, { x, y }) {
   }, -1)
 }
 
-async function getAllWindows() {
+async function getAllWindows(): Promise<chrome.windows.Window[]> {
   return new Promise((resolve) => {
-    chrome.windows.getAll({ populate: true }, resolve)
+    chrome.windows.getAll(resolve)
   })
 }
 
 // https://developer.chrome.com/docs/extensions/reference/windows/#method-update
 async function getMaximizedWindow({
   x, y, width, height,
-}) {
+}: SimpleScreen) {
   const windows = await getAllWindows()
   const maximizedWindows = windows
     .filter((w) => w.state === 'maximized')
     .filter((w) => {
+      if (w.top === undefined || w.left === undefined) return false
       const newTop = w.top + yOffset
       const newLeft = w.left + xOffset
 
@@ -103,8 +105,8 @@ async function getMaximizedWindow({
   return null
 }
 
-async function createWindow({ x, y, url }) {
-  return new Promise((resolve) => {
+async function createWindow({ x, y, url }:CreateScreenInfo) : Promise<chrome.windows.Window> {
+  return new Promise((resolve, reject) => {
     chrome.windows.create(
       {
         focused: false,
@@ -113,26 +115,30 @@ async function createWindow({ x, y, url }) {
         url,
       },
       (window) => {
-        resolve(window)
+        if (window) {
+          resolve(window)
+        } else {
+          reject(new Error('Failed to create window'))
+        }
       },
     )
   })
 }
 
-async function maximizeWindow(windowId) {
+async function maximizeWindow(windowId:number) : Promise<chrome.windows.Window> {
   return new Promise((resolve) => {
     chrome.windows.update(windowId, { state: 'maximized' }, resolve)
   })
 }
 
-async function createMaximizedWindow({ x, y, url }) {
+async function createMaximizedWindow({ x, y, url }: CreateScreenInfo) {
   const window = await createWindow({ x, y, url })
   maximizeWindow(window.id)
   return window
 }
 
 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
-async function createTab(windowId, url) {
+async function createTab(windowId:number, url:string) : Promise<chrome.tabs.Tab> {
   return new Promise((resolve) => {
     chrome.tabs.create({ windowId, url, active: true }, resolve)
   })

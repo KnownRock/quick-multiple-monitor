@@ -1,8 +1,12 @@
 {
   "name": "quick-multiple-monitor",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Make more easier to open page in specified monitor with drag and drop.",
-  "scripts": {},
+  "scripts": {
+    "build": "rollup -c",
+    "release": "cross-env NODE_ENV=production rollup -c",
+    "dev": "rollup -c -w"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/KnownRock/quick-multiple-monitor.git"
@@ -14,12 +18,30 @@
     "url": "https://github.com/KnownRock/quick-multiple-monitor/issues"
   },
   "homepage": "https://github.com/KnownRock/quick-multiple-monitor#readme",
+  "dependencies": {
+    "@extend-chrome/storage": "^1.5.0",
+    "@rollup/plugin-replace": "^3.0.0",
+    "@types/chrome": "^0.0.127",
+    "@types/firefox-webext-browser": "^82.0.0",
+    "@types/react": "^17.0.0",
+    "@types/react-dom": "^17.0.0",
+    "prettier": "^2.2.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
+    "webextension-polyfill": "^0.7.0"
+  },
   "devDependencies": {
+    "@rollup/plugin-alias": "^3.1.1",
+    "@rollup/plugin-commonjs": "^17.0.0",
+    "@rollup/plugin-node-resolve": "^11.0.1",
+    "@rollup/plugin-typescript": "^8.1.0",
     "@types/react": "^17.0.33",
     "@types/react-dom": "^17.0.10",
     "@types/react-syntax-highlighter": "^13.5.2",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
+    "@vitejs/plugin-react": "^1.0.7",
+    "cross-env": "^7.0.3",
     "eslint": "^8.7.0",
     "eslint-config-airbnb": "^19.0.4",
     "eslint-config-airbnb-typescript": "^16.1.0",
@@ -28,6 +50,13 @@
     "eslint-plugin-jsx-a11y": "^6.5.1",
     "eslint-plugin-react": "^7.28.0",
     "eslint-plugin-react-hooks": "^4.3.0",
+    "postcss": "^8.4.7",
+    "rollup": "^2.56.3",
+    "rollup-plugin-chrome-extension": "^3.6.1",
+    "rollup-plugin-empty-dir": "^1.0.5",
+    "rollup-plugin-import-css": "^3.0.2",
+    "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-zip": "^1.0.3",
     "typescript": "^4.4.4"
   }
 }

@@ -1,4 +1,4 @@
-!(async () => {
+(async () => {
   // https://developer.chrome.com/docs/extensions/mv3/content_scripts/
 
   const randomId = Math.floor(Math.random() * 1000000)
@@ -20,16 +20,19 @@
   })
 
   // after drag a url, hide the div
-  document.addEventListener('dragend', (e) => {
+  document.addEventListener('dragend', () => {
     hideContainer()
   })
 
   // initialize float box content
-  async function freshScreenDivs(div, { dragX, dragY }) {
+  async function freshScreenDivs(
+    div: HTMLElement,
+    { dragX, dragY }: { dragX: number, dragY: number },
+  ) {
     clearContainer()
 
-    const { width, height } = await getUserSizeSetting()
-    sizeContainer(width, height)
+    const { width, height } = await getUserSetting()
+    sizeContainer({ width, height })
 
     const allScreens = await getAllScreens()
 
@@ -47,7 +50,7 @@
       dragX, openerScreen, minX, scaleX, dragY, minY, scaleY, width, height,
     })
 
-    moveContainer(divLeft, divTop)
+    moveContainer({ x: divLeft, y: divTop })
 
     allScreens.forEach((screen, index) => {
       div.appendChild(getScreenBoxDiv(screen, index, allScreens.length, {
@@ -60,8 +63,10 @@
     showContainer()
   }
 
-  function getScreenBoxDiv(screen, index, length, {
+  function getScreenBoxDiv(screen: SimpleScreen, index: number, length: number, {
     minX, minY, scaleX, scaleY,
+  }: {
+    minX: number, minY: number, scaleX: number, scaleY: number,
   }) {
     const sDiv = document.createElement('div')
     sDiv.className = 'screen-div'
@@ -101,7 +106,7 @@
       hideContainer()
 
       if (isUrlDraged(e)) {
-        const url = e.dataTransfer.getData('text/uri-list')
+        const url = e.dataTransfer && e.dataTransfer.getData('text/uri-list')
         chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url })
       }
     })
@@ -127,14 +132,14 @@
     return closeDiv
   }
 
-  function initContainer(id) {
+  function initContainer(id: string) {
     const div = document.createElement('div')
     div.id = id
     document.body.appendChild(div)
     return div
   }
 
-  function initStyle(id, divId) {
+  function initStyle(id: string, divId: string) {
     const style = document.createElement('style')
     style.id = id
     style.innerHTML = `
@@ -193,12 +198,12 @@
     continerDiv.innerHTML = ''
   }
 
-  function moveContainer(x, y) {
+  function moveContainer({ x, y }: Coord) {
     continerDiv.style.left = `${x}px`
     continerDiv.style.top = `${y}px`
   }
 
-  function sizeContainer(width, height) {
+  function sizeContainer({ width, height }: Size) {
     continerDiv.style.width = `${width}px`
     continerDiv.style.height = `${height}px`
   }
@@ -211,22 +216,22 @@
     continerDiv.style.display = 'none'
   }
 
-  async function getUserSizeSetting() {
+  async function getUserSetting(): Promise<Size> {
     // get the float box size
     return new Promise((resolve) => {
-      chrome.storage.sync.get('size', (data) => {
-        if (!data || !data.size) {
+      chrome.storage.sync.get('setting', (data) => {
+        if (!data || !data.setting) {
           resolve({
             width: 320,
             height: 180,
           })
         }
-        resolve((data.size))
+        resolve((data.setting))
       })
     })
   }
 
-  async function getAllScreens() {
+  async function getAllScreens(): Promise<SimpleScreen[]> {
     // get all screens info
     return new Promise((resolve) => {
       chrome.runtime.sendMessage({ func: 'get-all-screens' }, (response) => {
@@ -235,7 +240,7 @@
     })
   }
 
-  function getAllScreensBound(allScreens, { height, width }) {
+  function getAllScreensBound(allScreens: SimpleScreen[], { height, width }: Size) {
     // resize screen divs size to fit float box
     const {
       minX, maxX, minY, maxY,
@@ -262,8 +267,8 @@
     }
   }
 
-  async function getOpenerScreen(allScreens) {
-    async function getOpenerScreenIndex() {
+  async function getOpenerScreen(allScreens: SimpleScreen[]) {
+    async function getOpenerScreenIndex(): Promise<number> {
       return new Promise((resolve) => {
         chrome.runtime.sendMessage({ func: 'get-screen-index' }, (response) => {
           resolve(response.screenIndex)
@@ -272,17 +277,27 @@
     }
 
     const openerScreenIndex = await getOpenerScreenIndex()
-
-    return [allScreens[0], allScreens[openerScreenIndex]].reduce((acc, screen) => {
-      if (screen) {
-        return { ...screen }
-      }
-      return acc
-    }, null)
+    return ([allScreens[0], allScreens[openerScreenIndex]] as (SimpleScreen | null)[])
+      .reduce((acc, screen) => {
+        if (screen) {
+          return { ...screen }
+        }
+        return acc
+      }, null)
   }
 
   function getContainerPosition({
     dragX, openerScreen, minX, scaleX, dragY, minY, scaleY, width, height,
+  }: {
+    dragX: number,
+    openerScreen: SimpleScreen,
+    minX: number,
+    scaleX: number,
+    dragY: number,
+    minY: number,
+    scaleY: number,
+    width: number,
+    height: number
   }) {
     let divLeft = dragX - (openerScreen.x + openerScreen.width / 2 - minX) * scaleX
     let divTop = dragY - (openerScreen.y + openerScreen.height / 2 - minY) * scaleY
@@ -302,7 +317,7 @@
     return { divLeft, divTop }
   }
 
-  function isUrlDraged(e) {
-    return e.dataTransfer.types.includes('text/uri-list')
+  function isUrlDraged(e: DragEvent) {
+    return (e.dataTransfer && e.dataTransfer.types.includes('text/uri-list')) ?? false
   }
 })()
