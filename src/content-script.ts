@@ -39,9 +39,9 @@
     const windowWidth = (window.innerWidth)
     const windowHeight = (window.innerHeight)
 
-    const centerPoint = { x: windowWidth / 2, y: windowHeight / 2 }
+    const anchorPoint = { x: windowWidth, y: windowHeight }
 
-    if ((centerPoint.x - x) ** 2 + (centerPoint.y - y) ** 2 < 2500) {
+    if ((anchorPoint.x - x) ** 2 + (anchorPoint.y - y) ** 2 < 2500) {
       hoverDiv.classList.remove('hide')
       hoverDiv.classList.add('show')
     } else {
@@ -201,10 +201,11 @@
     style.innerHTML = `
     #${centerDivId} {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      right: 0;
+      bottom: 0;
+      width: 100px;
+      height: 100px;
+      margin: -50px;
       pointer-events: none;
       z-index: 9999999;
 
@@ -409,8 +410,8 @@
     if (divLeft > (document.body.clientWidth || window.screen.availWidth) - width) {
       divLeft = (document.body.clientWidth || window.screen.availWidth) - width
     }
-    if (divTop > (document.body.clientHeight || window.screen.availHeight) - height) {
-      divTop = (document.body.clientHeight || window.screen.availHeight) - height
+    if (divTop > (window.innerHeight) - height) {
+      divTop = (window.innerHeight) - height
     }
     return { divLeft, divTop }
   }
