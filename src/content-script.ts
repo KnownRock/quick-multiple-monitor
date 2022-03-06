@@ -4,12 +4,20 @@
   const randomId = Math.floor(Math.random() * 1000000)
   // initialize float box div
   const continerDiv = initContainer(`__ext_qmm_div_${randomId}`)
+
+  const centerDiv = initCenterDiv(`__ext_qmm_center_div_${randomId}`)
+
+  const hoverDiv = document.createElement('div')
+  hoverDiv.className = 'hover-div hide'
+  hoverDiv.draggable = true
+  centerDiv.appendChild(hoverDiv)
+
   // initialize float box style
-  initStyle(`__ext_qmm_style_${randomId}`, `__ext_qmm_div_${randomId}`)
+  initStyle(`__ext_qmm_style_${randomId}`, `__ext_qmm_div_${randomId}`, `__ext_qmm_center_div_${randomId}`)
 
   // when drag a url, show the div
   document.addEventListener('dragstart', async (e) => {
-    if (isUrlDraged(e)) {
+    if (isVaildDraged(e)) {
       setTimeout(async () => {
         await freshScreenDivs(continerDiv, {
           dragX: e.clientX,
@@ -22,6 +30,29 @@
   // after drag a url, hide the div
   document.addEventListener('dragend', () => {
     hideContainer()
+  })
+
+  document.addEventListener('mousemove', async (e) => {
+    const x = e.clientX
+    const y = e.clientY
+
+    const windowWidth = (window.innerWidth)
+    const windowHeight = (window.innerHeight)
+
+    const centerPoint = { x: windowWidth / 2, y: windowHeight / 2 }
+
+    if ((centerPoint.x - x) ** 2 + (centerPoint.y - y) ** 2 < 2500) {
+      hoverDiv.classList.remove('hide')
+      hoverDiv.classList.add('show')
+    } else {
+      hoverDiv.classList.remove('show')
+      hoverDiv.classList.add('hide')
+    }
+  })
+
+  hoverDiv.addEventListener('dragstart', async (e) => {
+    if (e.dataTransfer) e.dataTransfer.setData('text/uri-list', 'qmm://move-window')
+    // e.dataTransfer.effectAllowed = 'move'
   })
 
   // initialize float box content
@@ -82,7 +113,7 @@
       `
 
     sDiv.addEventListener('dragover', (e) => {
-      if (isUrlDraged(e)) {
+      if (isVaildDraged(e)) {
         // add hover effect when dragging over
         sDiv.classList.add('screen-div-hover')
 
@@ -105,9 +136,26 @@
 
       hideContainer()
 
-      if (isUrlDraged(e)) {
-        const url = e.dataTransfer && e.dataTransfer.getData('text/uri-list')
-        chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url })
+      if (isVaildDraged(e)) {
+        if (e.dataTransfer && e.dataTransfer.types.includes('text/uri-list')) {
+          const url = e.dataTransfer && e.dataTransfer.getData('text/uri-list')
+          const qmmUrl = url.match(/(?<=^qmm:\/\/)(.*)/)
+          if (qmmUrl) {
+            const qmmUrlStr = qmmUrl[0]
+            if (qmmUrlStr === 'move-window') {
+              chrome.runtime.sendMessage({ func: 'move-window', screenIndex: index })
+            }
+          } else {
+            chrome.runtime.sendMessage({ func: 'open-new-tab', screenIndex: index, url })
+          }
+        } else if (e.dataTransfer && e.dataTransfer.getData('text/plain')) {
+          const text = e.dataTransfer && e.dataTransfer.getData('text/plain')
+          chrome.runtime.sendMessage({
+            func: 'open-new-tab',
+            screenIndex: index,
+            url: `https://www.google.com/search?q=${text}`,
+          })
+        }
       }
     })
     return sDiv
@@ -139,10 +187,60 @@
     return div
   }
 
-  function initStyle(id: string, divId: string) {
+  function initCenterDiv(id: string) {
+    const div = document.createElement('div')
+    div.id = id
+    document.body.appendChild(div)
+
+    return div
+  }
+
+  function initStyle(id: string, divId: string, centerDivId: string) {
     const style = document.createElement('style')
     style.id = id
     style.innerHTML = `
+    #${centerDivId} {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 9999999;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #${centerDivId} .hover-div {
+      border-radius: 50%;
+      pointer-events: auto;
+      background-color: rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+
+
+      transition: all 0.4s ease-in-out !important;
+    }
+
+    #${centerDivId} .hide {
+      opacity: 0;
+      width: 0px;
+      height: 0px;
+      visibility: hidden;
+    }
+
+    #${centerDivId} .show {
+      opacity: 1;
+      height: 100px;
+      width: 100px;
+      visibility: visible;
+    }
+
+
+
+
+
     #${divId} {
       display: none;
       pointer-events: auto;
@@ -317,7 +415,8 @@
     return { divLeft, divTop }
   }
 
-  function isUrlDraged(e: DragEvent) {
-    return (e.dataTransfer && e.dataTransfer.types.includes('text/uri-list')) ?? false
+  function isVaildDraged(e: DragEvent) {
+    if (!e.dataTransfer) return false
+    return e.dataTransfer.types.includes('text/uri-list') || e.dataTransfer.types.includes('text/plain')
   }
 })()
