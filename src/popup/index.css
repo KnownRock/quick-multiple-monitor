@@ -1,0 +1,9 @@
+.setting-size-panel{
+  display: flex; 
+  justify-content: space-around;
+}
+
+.operations-panel{
+  display: flex; 
+  justify-content: space-between;
+}
