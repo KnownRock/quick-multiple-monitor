@@ -45,6 +45,30 @@ async function main() {
             sendResponse({ screenIndex: -1 })
           }
         })()
+      } else if (request.func === 'move-window') {
+        (async () => {
+          const windows = await getAllWindows()
+          const window = windows.find((w) => sender.tab && w.id === sender.tab.windowId)
+          if (window) {
+            const { screenIndex } = request
+            const allScreens = await getAllScreens()
+            const screen = allScreens[screenIndex]
+            const { x, y } = screen
+
+            const windowState = window.state
+
+            chrome.windows.update(window.id, {
+              left: x + xOffset,
+              top: y + yOffset,
+              state: 'normal',
+            }, (win) => {
+              if (windowState === 'maximized') {
+                maximizeWindow(win.id)
+              }
+            })
+            // debugger
+          }
+        })()
       }
 
       return true
@@ -105,7 +129,7 @@ async function getMaximizedWindow({
   return null
 }
 
-async function createWindow({ x, y, url }:CreateScreenInfo) : Promise<chrome.windows.Window> {
+async function createWindow({ x, y, url }: CreateScreenInfo): Promise<chrome.windows.Window> {
   return new Promise((resolve, reject) => {
     chrome.windows.create(
       {
@@ -125,7 +149,7 @@ async function createWindow({ x, y, url }:CreateScreenInfo) : Promise<chrome.win
   })
 }
 
-async function maximizeWindow(windowId:number) : Promise<chrome.windows.Window> {
+async function maximizeWindow(windowId: number): Promise<chrome.windows.Window> {
   return new Promise((resolve) => {
     chrome.windows.update(windowId, { state: 'maximized' }, resolve)
   })
@@ -138,7 +162,7 @@ async function createMaximizedWindow({ x, y, url }: CreateScreenInfo) {
 }
 
 // https://developer.chrome.com/docs/extensions/reference/tabs/#method-create
-async function createTab(windowId:number, url:string) : Promise<chrome.tabs.Tab> {
+async function createTab(windowId: number, url: string): Promise<chrome.tabs.Tab> {
   return new Promise((resolve) => {
     chrome.tabs.create({ windowId, url, active: true }, resolve)
   })
