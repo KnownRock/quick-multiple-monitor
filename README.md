@@ -8,6 +8,7 @@ Click extension
 or ![image](https://user-images.githubusercontent.com/58989910/156196727-e36bcb31-332d-4513-a31f-0dc6738853e0.png)
 
 
+
 Edit screens with a JSON array, which have the following props.
 And edit the size of the float box, which will be used to open URL in a specified monitor.
 
@@ -19,3 +20,7 @@ Drag a URL to show the float box.
 ![image](https://user-images.githubusercontent.com/58989910/156197487-72444a4f-2cda-4b96-820a-d0f46af9c94f.png)
 
 Drop the URL to open a page in a specified monitor😆
+
+And drag the float panel at the bottom right to move the entire window.
+
+![drag-window](https://user-images.githubusercontent.com/58989910/156927387-431bb4a1-811e-435c-b786-f6e81c6c455b.png)
