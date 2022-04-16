@@ -1,13 +1,13 @@
 # [Chrome Extension] Quick multiple monitors
 ## Make more easier to open a page in a specified monitor with drag and drop.
-
+https://chrome.google.com/webstore/detail/quick-multiple-monitor/jmhngfejfmopjjjhffhpmlohffccjfdo
 ### Setting
 
 Click extension
 ![image](https://user-images.githubusercontent.com/58989910/156196515-b11d3fce-0f2e-4b5d-8bea-a65cf9c0c57b.png)
 or ![image](https://user-images.githubusercontent.com/58989910/156196727-e36bcb31-332d-4513-a31f-0dc6738853e0.png)
 
-
+https://chrome.google.com/webstore/detail/quick-multiple-monitor/jmhngfejfmopjjjhffhpmlohffccjfdo
 
 Edit screens with a JSON array, which have the following props.
 And edit the size of the float box, which will be used to open URL in a specified monitor.
